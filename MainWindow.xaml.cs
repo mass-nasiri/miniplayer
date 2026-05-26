@@ -1,85 +1,237 @@
 // MainWindow.xaml.cs
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using Microsoft.Win32;
 
 namespace MinimalMusicPlayer
 {
     public partial class MainWindow : Window
     {
-        private ObservableCollection<Track> tracks;
-        private int currentTrackIndex = 0;
+        private ObservableCollection<Track> tracks = new ObservableCollection<Track>();
+        private int currentTrackIndex = -1;
         private bool isPlaying = false;
+        private MediaPlayer mediaPlayer = new MediaPlayer();
+        private DispatcherTimer timer = new DispatcherTimer();
+        private bool isSliderDragging = false;
 
         public MainWindow()
         {
             InitializeComponent();
-            LoadTracks();
+            QueueListBox.ItemsSource = tracks;
+            
+            // تنظیم تایمر برای به‌روزرسانی اسلایدر وضعیت پخش آهنگ
+            timer.Interval = TimeSpan.FromMilliseconds(200);
+            timer.Tick += Timer_Tick;
+            
+            // رویداد اتمام آهنگ برای رفتن اتوماتیک به آهنگ بعدی
+            mediaPlayer.MediaEnded += MediaPlayer_MediaEnded;
         }
 
-        private void LoadTracks()
+        private void BtnOpen_Click(object sender, RoutedEventArgs e)
         {
-            tracks = new ObservableCollection<Track>
+            OpenFileDialog openFileDialog = new OpenFileDialog
             {
-                new Track { Index = 1, Name = "Nuvole Bianche", Artist = "Einaudi", IsCurrent = true },
-                new Track { Index = 2, Name = "Experience", Artist = "Einaudi", IsCurrent = false },
-                new Track { Index = 3, Name = "Divenire", Artist = "Einaudi", IsCurrent = false },
-                new Track { Index = 4, Name = "River Flows", Artist = "Yiruma", IsCurrent = false },
-                new Track { Index = 5, Name = "Comptine", Artist = "Tiersen", IsCurrent = false },
-                new Track { Index = 6, Name = "Clair de Lune", Artist = "Debussy", IsCurrent = false }
+                Multiselect = true,
+                Filter = "Audio Files (*.mp3;*.wav;*.flac;*.m4a)|*.mp3;*.wav;*.flac;*.m4a"
             };
 
-            QueueListBox.ItemsSource = tracks;
-            UpdatePlayerUI();
+            if (openFileDialog.ShowDialog() == true)
+            {
+                int startIndex = tracks.Count;
+                foreach (string filePath in openFileDialog.FileNames)
+                {
+                    var track = ExtractTrackInfo(filePath, tracks.Count + 1);
+                    tracks.Add(track);
+                }
+
+                if (currentTrackIndex == -1 && tracks.Count > 0)
+                {
+                    LoadTrack(startIndex);
+                }
+            }
         }
 
-        private void UpdatePlayerUI()
+        private Track ExtractTrackInfo(string filePath, int targetIndex)
         {
+            var track = new Track
+            {
+                Index = targetIndex,
+                FilePath = filePath,
+                Name = Path.GetFileNameWithoutExtension(filePath),
+                Artist = "Unknown Artist",
+                IsCurrent = false
+            };
+
+            try
+            {
+                using (var file = TagLib.File.Create(filePath))
+                {
+                    if (!string.IsNullOrEmpty(file.Tag.Title))
+                        track.Name = file.Tag.Title;
+                    
+                    if (file.Tag.Performers.Length > 0)
+                        track.Artist = string.Join(", ", file.Tag.Performers);
+                }
+            }
+            catch
+            {
+                // در صورت بروز خطای خواندن متادیتا، نام فایل استفاده می‌شود
+            }
+
+            return track;
+        }
+
+        private void LoadTrack(int index)
+        {
+            if (index < 0 || index >= tracks.Count) return;
+
+            currentTrackIndex = index;
+            var currentTrack = tracks[currentTrackIndex];
+
+            // مدیریت تغییر وضعیت بصری لیست
             for (int i = 0; i < tracks.Count; i++)
             {
                 tracks[i].IsCurrent = (i == currentTrackIndex);
             }
-            
             QueueListBox.Items.Refresh();
 
-            var currentTrack = tracks[currentTrackIndex];
+            // لود اطلاعات متنی در پلیر
             TxtTitle.Text = currentTrack.Name;
             TxtArtist.Text = currentTrack.Artist;
+
+            // لود آیکون یا کاور آرت تعبیه شده در فایل صوتی
+            LoadCoverArt(currentTrack.FilePath);
+
+            // لود و پخش فایل صوتی در مدیا پلیر بومی ویندوز
+            mediaPlayer.Open(new Uri(currentTrack.FilePath));
+            
+            if (isPlaying)
+            {
+                mediaPlayer.Play();
+                timer.Start();
+            }
+            else
+            {
+                // آماده‌سازی اولیه تایمر برای نمایش زمان کل آهنگ
+                mediaPlayer.Play();
+                mediaPlayer.Pause();
+                UpdateTimelineInfo();
+            }
+        }
+
+        private void LoadCoverArt(string filePath)
+        {
+            try
+            {
+                using (var file = TagLib.File.Create(filePath))
+                {
+                    if (file.Tag.Pictures.Length > 0)
+                    {
+                        var bin = file.Tag.Pictures[0].Data.Data;
+                        var bitmap = new BitmapImage();
+                        bitmap.BeginInit();
+                        bitmap.StreamSource = new MemoryStream(bin);
+                        bitmap.EndInit();
+
+                        ImgCover.Source = bitmap;
+                        DefaultCover.Visibility = Visibility.Collapsed;
+                        return;
+                    }
+                }
+            }
+            catch
+            {
+                // استفاده از المان هندسی پیش فرض در صورت خطا
+            }
+
+            ImgCover.Source = null;
+            DefaultCover.Visibility = Visibility.Visible;
+        }
+
+        private void Timer_Tick(object? sender, EventArgs e)
+        {
+            if (!isSliderDragging && mediaPlayer.NaturalDuration.HasTimeSpan)
+            {
+                TimelineSlider.Value = (mediaPlayer.Position.TotalSeconds / mediaPlayer.NaturalDuration.TimeSpan.TotalSeconds) * 100;
+                TxtCurrentTime.Text = mediaPlayer.Position.ToString(@"m\:ss");
+                TxtTotalTime.Text = mediaPlayer.NaturalDuration.TimeSpan.ToString(@"m\:ss");
+            }
+        }
+
+        private void UpdateTimelineInfo()
+        {
+            // شبیه‌سازی تاخیر لود دیتای فایل صوتی توسط مدیاپلیر سیستم عامل
+            var dispatcherTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+            dispatcherTimer.Tick += (s, a) =>
+            {
+                dispatcherTimer.Stop();
+                if (mediaPlayer.NaturalDuration.HasTimeSpan)
+                {
+                    TxtTotalTime.Text = mediaPlayer.NaturalDuration.TimeSpan.ToString(@"m\:ss");
+                }
+            };
+            dispatcherTimer.Start();
         }
 
         private void BtnPlay_Click(object sender, RoutedEventArgs e)
         {
+            if (currentTrackIndex == -1) return;
+
             isPlaying = !isPlaying;
             if (isPlaying)
             {
                 PlayIcon.Visibility = Visibility.Collapsed;
                 PauseIcon.Visibility = Visibility.Visible;
+                mediaPlayer.Play();
+                timer.Start();
             }
             else
             {
                 PlayIcon.Visibility = Visibility.Visible;
                 PauseIcon.Visibility = Visibility.Collapsed;
+                mediaPlayer.Pause();
+                timer.Stop();
             }
         }
 
         private void BtnNext_Click(object sender, RoutedEventArgs e)
         {
-            currentTrackIndex = (currentTrackIndex + 1) % tracks.Count;
-            UpdatePlayerUI();
+            if (tracks.Count == 0) return;
+            int nextIndex = (currentTrackIndex + 1) % tracks.Count;
+            LoadTrack(nextIndex);
         }
 
         private void BtnPrev_Click(object sender, RoutedEventArgs e)
         {
-            currentTrackIndex = (currentTrackIndex - 1 + tracks.Count) % tracks.Count;
-            UpdatePlayerUI();
+            if (tracks.Count == 0) return;
+            int prevIndex = (currentTrackIndex - 1 + tracks.Count) % tracks.Count;
+            LoadTrack(prevIndex);
+        }
+
+        private void MediaPlayer_MediaEnded(object? sender, EventArgs e)
+        {
+            BtnNext_Click(this, new RoutedEventArgs());
+        }
+
+        private void TimelineSlider_PreviewMouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (currentTrackIndex != -1 && mediaPlayer.NaturalDuration.HasTimeSpan)
+            {
+                double targetSeconds = (TimelineSlider.Value / 100) * mediaPlayer.NaturalDuration.TimeSpan.TotalSeconds;
+                mediaPlayer.Position = TimeSpan.FromSeconds(targetSeconds);
+            }
         }
 
         private void QueueListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (QueueListBox.SelectedIndex != -1)
             {
-                currentTrackIndex = QueueListBox.SelectedIndex;
-                UpdatePlayerUI();
+                LoadTrack(QueueListBox.SelectedIndex);
                 QueueListBox.SelectedIndex = -1;
             }
         }
@@ -89,8 +241,9 @@ namespace MinimalMusicPlayer
     {
         public int Index { get; set; }
         public string DisplayIndex => Index.ToString();
-        public string Name { get; set; }
-        public string Artist { get; set; }
+        public required string FilePath { get; set; }
+        public required string Name { get; set; }
+        public required string Artist { get; set; }
         public bool IsCurrent { get; set; }
     }
 }
