@@ -7,7 +7,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>app_icon.ico</ApplicationIcon>
-    <StartupObject>MinimalMusicPlayer.Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>
