@@ -151,7 +151,7 @@
         <Grid Grid.Column="1" Background="#181818" Margin="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Width="*"/>
+                <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Row="0" Text="UP NEXT" FontSize="11" FontWeight="Bold" Foreground="#727272" Margin="16,20,16,8" LetterSpacing="1"/>
