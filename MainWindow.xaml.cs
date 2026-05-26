@@ -1,4 +1,3 @@
-// MainWindow.xaml.cs
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -40,7 +39,6 @@ namespace MinimalMusicPlayer
                 tracks[i].IsCurrent = (i == currentTrackIndex);
             }
             
-            // بازخوانی وضعیت ظاهری آیتم‌ها در ListBox
             QueueListBox.Items.Refresh();
 
             var currentTrack = tracks[currentTrackIndex];
@@ -81,7 +79,7 @@ namespace MinimalMusicPlayer
             {
                 currentTrackIndex = QueueListBox.SelectedIndex;
                 UpdatePlayerUI();
-                QueueListBox.SelectedIndex = -1; // ریست کردن انتخاب برای کلیک مجدد
+                QueueListBox.SelectedIndex = -1;
             }
         }
     }
