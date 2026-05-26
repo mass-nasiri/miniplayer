@@ -1,4 +1,5 @@
 // MainWindow.xaml.cs
+using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
@@ -19,16 +20,23 @@ namespace MinimalMusicPlayer
         private DispatcherTimer timer = new DispatcherTimer();
         private bool isSliderDragging = false;
 
+        // Pure C# Entry Point bypassing implicit WPF App.xaml generation bugs
+        [STAThread]
+        public static void Main()
+        {
+            Application app = new Application();
+            MainWindow window = new MainWindow();
+            app.Run(window);
+        }
+
         public MainWindow()
         {
             InitializeComponent();
             QueueListBox.ItemsSource = tracks;
             
-            // تنظیم تایمر برای به‌روزرسانی اسلایدر وضعیت پخش آهنگ
             timer.Interval = TimeSpan.FromMilliseconds(200);
             timer.Tick += Timer_Tick;
             
-            // رویداد اتمام آهنگ برای رفتن اتوماتیک به آهنگ بعدی
             mediaPlayer.MediaEnded += MediaPlayer_MediaEnded;
         }
 
@@ -80,7 +88,7 @@ namespace MinimalMusicPlayer
             }
             catch
             {
-                // در صورت بروز خطای خواندن متادیتا، نام فایل استفاده می‌شود
+                // Fallback to filename if metadata extraction fails
             }
 
             return track;
@@ -93,21 +101,17 @@ namespace MinimalMusicPlayer
             currentTrackIndex = index;
             var currentTrack = tracks[currentTrackIndex];
 
-            // مدیریت تغییر وضعیت بصری لیست
             for (int i = 0; i < tracks.Count; i++)
             {
                 tracks[i].IsCurrent = (i == currentTrackIndex);
             }
             QueueListBox.Items.Refresh();
 
-            // لود اطلاعات متنی در پلیر
             TxtTitle.Text = currentTrack.Name;
             TxtArtist.Text = currentTrack.Artist;
 
-            // لود آیکون یا کاور آرت تعبیه شده در فایل صوتی
             LoadCoverArt(currentTrack.FilePath);
 
-            // لود و پخش فایل صوتی در مدیا پلیر بومی ویندوز
             mediaPlayer.Open(new Uri(currentTrack.FilePath));
             
             if (isPlaying)
@@ -117,7 +121,6 @@ namespace MinimalMusicPlayer
             }
             else
             {
-                // آماده‌سازی اولیه تایمر برای نمایش زمان کل آهنگ
                 mediaPlayer.Play();
                 mediaPlayer.Pause();
                 UpdateTimelineInfo();
@@ -146,7 +149,7 @@ namespace MinimalMusicPlayer
             }
             catch
             {
-                // استفاده از المان هندسی پیش فرض در صورت خطا
+                // Fallback to default geometry if cover extraction fails
             }
 
             ImgCover.Source = null;
@@ -165,7 +168,6 @@ namespace MinimalMusicPlayer
 
         private void UpdateTimelineInfo()
         {
-            // شبیه‌سازی تاخیر لود دیتای فایل صوتی توسط مدیاپلیر سیستم عامل
             var dispatcherTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
             dispatcherTimer.Tick += (s, a) =>
             {
