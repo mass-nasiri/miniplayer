@@ -99,16 +99,19 @@
                 </Grid.RowDefinitions>
 
                 <Border Grid.Row="0" Width="120" Height="120" Background="#1F1F1F" BorderBrush="#282828" BorderThickness="1" CornerRadius="6" HorizontalAlignment="Center">
-                    <Canvas Width="60" Height="60" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <Ellipse Width="40" Height="40" Stroke="#282828" StrokeThickness="1" Canvas.Left="10" Canvas.Top="10"/>
-                        <Ellipse Width="20" Height="20" Stroke="#282828" StrokeThickness="1" Canvas.Left="20" Canvas.Top="20"/>
-                        <Line X1="30" Y1="0" X2="30" Y2="10" Stroke="#282828" StrokeThickness="1"/>
-                        <Line X1="30" Y1="50" X2="30" Y2="60" Stroke="#282828" StrokeThickness="1"/>
-                    </Canvas>
+                    <Grid>
+                        <Canvas x:Name="DefaultCover" Width="60" Height="60" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Visible">
+                            <Ellipse Width="40" Height="40" Stroke="#282828" StrokeThickness="1" Canvas.Left="10" Canvas.Top="10"/>
+                            <Ellipse Width="20" Height="20" Stroke="#282828" StrokeThickness="1" Canvas.Left="20" Canvas.Top="20"/>
+                            <Line X1="30" Y1="0" X2="30" Y2="10" Stroke="#282828" StrokeThickness="1"/>
+                            <Line X1="30" Y1="50" X2="30" Y2="60" Stroke="#282828" StrokeThickness="1"/>
+                        </Canvas>
+                        <Image x:Name="ImgCover" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Grid>
                 </Border>
 
-                <TextBlock x:Name="TxtTitle" Grid.Row="1" Text="Nuvole Bianche" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,12,0,2" HorizontalAlignment="Left"/>
-                <TextBlock x:Name="TxtArtist" Grid.Row="2" Text="Ludovico Einaudi" FontSize="12" Foreground="#B3B3B3" Margin="0,0,0,12" HorizontalAlignment="Left"/>
+                <TextBlock x:Name="TxtTitle" Grid.Row="1" Text="No Track Loaded" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,12,0,2" HorizontalAlignment="Left" TextTrimming="CharacterEllipsis"/>
+                <TextBlock x:Name="TxtArtist" Grid.Row="2" Text="Click Open to select music" FontSize="12" Foreground="#B3B3B3" Margin="0,0,0,12" HorizontalAlignment="Left" TextTrimming="CharacterEllipsis"/>
 
                 <Grid Grid.Row="3" Margin="0,0,0,12">
                     <Grid.ColumnDefinitions>
@@ -116,9 +119,9 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="1:42" FontSize="11" Foreground="#727272" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <Slider Grid.Column="1" Style="{StaticResource MinimalSlider}" Minimum="0" Maximum="100" Value="34"/>
-                    <TextBlock Grid.Column="2" Text="4:58" FontSize="11" Foreground="#727272" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    <TextBlock x:Name="TxtCurrentTime" Grid.Column="0" Text="0:00" FontSize="11" Foreground="#727272" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <Slider x:Name="TimelineSlider" Grid.Column="1" Style="{StaticResource MinimalSlider}" Minimum="0" Maximum="100" Value="0" PreviewMouseLeftButtonUp="TimelineSlider_PreviewMouseLeftButtonUp"/>
+                    <TextBlock x:Name="TxtTotalTime" Grid.Column="2" Text="0:00" FontSize="11" Foreground="#727272" VerticalAlignment="Center" Margin="8,0,0,0"/>
                 </Grid>
 
                 <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -154,7 +157,16 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" Text="UP NEXT" FontSize="11" FontWeight="Bold" Foreground="#727272" Margin="16,20,16,8"/>
+            <Grid Grid.Row="0" Margin="16,20,16,8">
+                <TextBlock Text="UP NEXT" FontSize="11" FontWeight="Bold" Foreground="#727272" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                <Button Content="OPEN" FontSize="11" FontWeight="Bold" Foreground="#1DB954" Background="Transparent" BorderThickness="0" HorizontalAlignment="Right" VerticalAlignment="Center" Cursor="Hand" Click="BtnOpen_Click">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <ContentPresenter />
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
 
             <ListBox x:Name="QueueListBox" Grid.Row="1" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Hidden" SelectionChanged="QueueListBox_SelectionChanged">
                 <ListBox.ItemContainerStyle>
@@ -164,11 +176,13 @@
                         <Setter Property="BorderThickness" Value="0,0,0,1"/>
                         <Setter Property="Padding" Value="0,6,0,6"/>
                         <Setter Property="Template">
-                            <ControlTemplate TargetType="ListBoxItem">
-                                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
-                                    <ContentPresenter />
-                                </Border>
-                            </ControlTemplate>
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter />
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
                         </Setter>
                         <Style.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
