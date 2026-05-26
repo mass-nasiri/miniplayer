@@ -154,7 +154,7 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" Text="UP NEXT" FontSize="11" FontWeight="Bold" Foreground="#727272" Margin="16,20,16,8" LetterSpacing="1"/>
+            <TextBlock Grid.Row="0" Text="UP NEXT" FontSize="11" FontWeight="Bold" Foreground="#727272" Margin="16,20,16,8"/>
 
             <ListBox x:Name="QueueListBox" Grid.Row="1" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Hidden" SelectionChanged="QueueListBox_SelectionChanged">
                 <ListBox.ItemContainerStyle>
