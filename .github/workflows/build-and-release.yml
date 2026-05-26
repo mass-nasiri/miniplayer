@@ -1,3 +1,4 @@
+# build-and-release.yml
 name: Build and Release WPF App
 
 on:
