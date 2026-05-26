@@ -11,6 +11,18 @@ using Microsoft.Win32;
 
 namespace MinimalMusicPlayer
 {
+    // Dedicated explicit entry point class to bypass MSBuild WPF single-file publishing bugs
+    public static class Program
+    {
+        [STAThread]
+        public static void Main(string[] args)
+        {
+            Application app = new Application();
+            MainWindow window = new MainWindow();
+            app.Run(window);
+        }
+    }
+
     public partial class MainWindow : Window
     {
         private ObservableCollection<Track> tracks = new ObservableCollection<Track>();
@@ -19,15 +31,6 @@ namespace MinimalMusicPlayer
         private MediaPlayer mediaPlayer = new MediaPlayer();
         private DispatcherTimer timer = new DispatcherTimer();
         private bool isSliderDragging = false;
-
-        // Pure C# Entry Point bypassing implicit WPF App.xaml generation bugs
-        [STAThread]
-        public static void Main()
-        {
-            Application app = new Application();
-            MainWindow window = new MainWindow();
-            app.Run(window);
-        }
 
         public MainWindow()
         {
@@ -88,7 +91,7 @@ namespace MinimalMusicPlayer
             }
             catch
             {
-                // Fallback to filename if metadata extraction fails
+                // Fallback if metadata extraction fails
             }
 
             return track;
