@@ -5,6 +5,10 @@ namespace MinimalMusicPlayer
 {
     public partial class App : Application
     {
-        // نقطه ورود به صورت خودکار توسط بیلد سیستم WPF تولید و مدیریت می‌شود
+        public App()
+        {
+            // این متد کامپوننت‌های اولیه و تعاریف StartupUri را مقداردهی می‌کند
+            InitializeComponent();
+        }
     }
 }
